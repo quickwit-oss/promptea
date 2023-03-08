@@ -1,0 +1,12 @@
+
+fields:
+  name:
+    type: string
+    prompt: "Enter Name"
+  items:
+    type: object
+    fields:
+      foo:
+        type: string
+      bar:
+        type: string

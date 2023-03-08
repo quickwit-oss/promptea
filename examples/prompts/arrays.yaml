@@ -1,0 +1,10 @@
+
+fields:
+  name:
+    type: string
+  items:
+    type: u64[]
+    display_name: "Shopping List"
+    prompt: "Shopping Item"
+    max_items: 3
+    min_items: 2
