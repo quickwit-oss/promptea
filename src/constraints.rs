@@ -3,7 +3,6 @@ use regex::Regex;
 
 use crate::value::TraitIntBounds;
 
-
 #[derive(serde::Deserialize, Clone, Copy)]
 /// The constraints for collection types (array, set, hashmap, etc...)
 pub struct CollectionConstraints {
@@ -24,23 +23,14 @@ impl Default for CollectionConstraints {
     }
 }
 
-#[derive(serde::Deserialize, Clone)]
+#[derive(serde::Deserialize, Clone, Default)]
 /// The constraints for the select type.
 pub struct SelectConstraints {
-    #[serde(default = "one")]
-    /// The maximum number of the items that can be selected.
-    pub max_items: usize,
+    #[serde(default)]
+    /// Can several items be selected at once.
+    pub select_many: bool,
     /// The items that can be selected.
     pub items: Vec<serde_json::Value>,
-}
-
-impl Default for SelectConstraints {
-    fn default() -> Self {
-        Self {
-            max_items: 1,
-            items: Vec::new(),
-        }
-    }
 }
 
 #[derive(serde::Deserialize, Clone)]
@@ -72,19 +62,27 @@ impl Validator<String> for StringConstraints {
 
     fn validate(&mut self, input: &String) -> Result<(), Self::Err> {
         if input.len() < self.min_length {
-            return Err(format!("Value {input:?} does not meet the minimum required length ({})", self.max_length))
+            return Err(format!(
+                "Value {input:?} does not meet the minimum required length ({})",
+                self.max_length
+            ));
         }
 
         if input.len() > self.max_length {
-            return Err(format!("Value {input:?} exceeds the maximum allowed length ({})", self.max_length))
+            return Err(format!(
+                "Value {input:?} exceeds the maximum allowed length ({})",
+                self.max_length
+            ));
         }
 
         if let Some(re) = self.regex.as_ref() {
-            let regex = Regex::new(re)
-                .map_err(|e| format!("Failed to build regex validator: {e}"))?;
+            let regex =
+                Regex::new(re).map_err(|e| format!("Failed to build regex validator: {e}"))?;
 
             if !regex.is_match(input) {
-                return Err(format!("Value {input:?} does not match regex pattern: {re:?}"))
+                return Err(format!(
+                    "Value {input:?} does not match regex pattern: {re:?}"
+                ));
             }
         }
 
@@ -126,9 +124,4 @@ impl<T: TraitIntBounds + Clone + Copy> Validator<T> for IntConstraints<T> {
 
         Ok(())
     }
-}
-
-
-fn one() -> usize {
-    1
 }

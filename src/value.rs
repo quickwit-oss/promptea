@@ -2,8 +2,8 @@ use std::fmt::{Debug, Display};
 use std::io;
 use std::str::FromStr;
 
-use dialoguer::{Input, Validator};
 use dialoguer::theme::Theme;
+use dialoguer::{Input, Validator};
 
 /// A value which can prompt a user for a value.
 ///
@@ -39,13 +39,11 @@ where
             .with_prompt(field_name.to_string())
             .validate_with(|input: &String| -> Result<(), String> {
                 if can_skip && input.is_empty() {
-                    return Ok(())
+                    return Ok(());
                 }
 
                 if let Some(validator) = validator.as_mut() {
-                    validator
-                        .validate(input)
-                        .map_err(|e| e.to_string())
+                    validator.validate(input).map_err(|e| e.to_string())
                 } else {
                     Ok(())
                 }
@@ -60,7 +58,6 @@ where
             })
     }
 }
-
 
 pub trait TraitIntBounds: PartialOrd + Debug + Display {
     fn max() -> Self;
@@ -83,7 +80,7 @@ where
     V::Err: Debug,
 {
     if can_skip && input.is_empty() {
-        return None
+        return None;
     } else {
         Some(input.parse::<V>().unwrap())
     }
@@ -116,16 +113,15 @@ macro_rules! parse_primitives {
                     .with_prompt(field_name.to_string())
                     .validate_with(|input: &String| -> Result<(), String> {
                         if can_skip && input.is_empty() {
-                            return Ok(())
+                            return Ok(());
                         }
 
-                        let value = input.parse::<Self>()
+                        let value = input
+                            .parse::<Self>()
                             .map_err(|_| format!("Value ({input}) {}.", $msg))?;
 
                         if let Some(validator) = validator.as_mut() {
-                            validator
-                                .validate(&value)
-                                .map_err(|e| e.to_string())
+                            validator.validate(&value).map_err(|e| e.to_string())
                         } else {
                             Ok(())
                         }

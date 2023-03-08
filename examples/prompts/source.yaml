@@ -1,0 +1,23 @@
+
+fields:
+  source_id:
+    type: string
+    display_name: "Source ID"
+    description: |
+      The source ID is a string that uniquely identifies the source within an index.\n
+      It may only contain uppercase or lowercase ASCII letters, digits, hyphens (-), and underscores (_).\n
+      Finally, it must start with a letter and contain at least 3 characters but no more than 255.\n
+      Find out more: https://quickwit.io/docs/configuration/source-config
+    max_length: 255
+    min_length: 3
+    regex: "^[a-zA-Z][a-zA-Z0-9-_]{2,254}$"
+  source_type:
+    type: select
+    display_name: "Source Type"
+    description: |
+      The source type designates the kind of source being configured.
+      As of version 0.3, available source types are `file`, `kafka`, and `kinesis`.
+    items:
+      - file
+      - kafka
+      - kinesis

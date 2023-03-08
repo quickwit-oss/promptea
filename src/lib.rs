@@ -1,21 +1,21 @@
-mod value;
 mod constraints;
+mod value;
 
-
+use console::Style;
+use dialoguer::theme::{ColorfulTheme, Theme};
+use dialoguer::{Confirm, MultiSelect, Select, Validator};
+use indexmap::IndexMap;
+use inflector::Inflector;
 use std::collections::BTreeMap;
 use std::fmt::Display;
 use std::io;
-use console::Style;
-use dialoguer::{Confirm, MultiSelect, Select, Validator};
-use dialoguer::theme::{ColorfulTheme, Theme};
-use indexmap::IndexMap;
-use inflector::Inflector;
 
-pub use constraints::{StringConstraints, IntConstraints, SelectConstraints, CollectionConstraints};
-pub use value::{TraitIntBounds, PromptValue};
+pub use constraints::{
+    CollectionConstraints, IntConstraints, SelectConstraints, StringConstraints,
+};
+pub use value::{PromptValue, TraitIntBounds};
 
 static SKIP_MESSAGE: &str = "Did you mean to skip this field entirely?";
-
 
 #[derive(serde::Deserialize)]
 /// A prompt schema.
@@ -24,7 +24,7 @@ static SKIP_MESSAGE: &str = "Did you mean to skip this field entirely?";
 /// for input and validate it accordingly.
 pub struct Schema {
     /// The schema fields to prompt users.
-    pub fields: IndexMap<String, Field>
+    pub fields: IndexMap<String, Field>,
 }
 
 impl Schema {
@@ -79,19 +79,20 @@ impl Field {
                 println!();
             }
 
-            let styled = Style::new()
-                .dim()
-                .for_stdout();
+            let styled = Style::new().dim().italic().for_stdout();
             for line in self.description.lines() {
                 println!("  {}", styled.apply_to(line));
             }
         }
 
-        let field_name =  self.prompt.as_deref()
+        let field_name = self
+            .prompt
+            .as_deref()
             .or(self.display_name.as_deref())
-            .unwrap_or(field_key)
-            .to_title_case();
-        self.type_constraints.prompt(&field_name, self.can_skip, quiet)
+            .map(str::to_string)
+            .unwrap_or_else(|| field_key.to_title_case());
+        self.type_constraints
+            .prompt(&field_name, self.can_skip, quiet)
     }
 }
 
@@ -230,53 +231,58 @@ impl TypeConstraints {
             TypeConstraints::String(constraints) => {
                 String::prompt(&theme, field_name, Some(constraints.clone()), can_skip)
                     .map(serde_json::Value::from)
-            },
+            }
             TypeConstraints::U64(constraints) => {
                 u64::prompt(&theme, field_name, Some(*constraints), can_skip)
                     .map(serde_json::Value::from)
-            },
+            }
             TypeConstraints::U32(constraints) => {
                 u32::prompt(&theme, field_name, Some(*constraints), can_skip)
                     .map(serde_json::Value::from)
-            },
+            }
             TypeConstraints::U16(constraints) => {
                 u16::prompt(&theme, field_name, Some(*constraints), can_skip)
                     .map(serde_json::Value::from)
-            },
+            }
             TypeConstraints::U8(constraints) => {
                 u8::prompt(&theme, field_name, Some(*constraints), can_skip)
                     .map(serde_json::Value::from)
-            },
+            }
             TypeConstraints::I64(constraints) => {
                 i64::prompt(&theme, field_name, Some(*constraints), can_skip)
                     .map(serde_json::Value::from)
-            },
+            }
             TypeConstraints::I32(constraints) => {
                 i32::prompt(&theme, field_name, Some(*constraints), can_skip)
                     .map(serde_json::Value::from)
-            },
+            }
             TypeConstraints::I16(constraints) => {
                 i16::prompt(&theme, field_name, Some(*constraints), can_skip)
                     .map(serde_json::Value::from)
-            },
+            }
             TypeConstraints::I8(constraints) => {
                 i8::prompt(&theme, field_name, Some(*constraints), can_skip)
                     .map(serde_json::Value::from)
-            },
+            }
             TypeConstraints::F64(constraints) => {
                 f64::prompt(&theme, field_name, Some(*constraints), can_skip)
                     .map(serde_json::Value::from)
-            },
+            }
             TypeConstraints::F32(constraints) => {
                 f32::prompt(&theme, field_name, Some(*constraints), can_skip)
                     .map(serde_json::Value::from)
-            },
+            }
             TypeConstraints::Select(constraints) => {
-                if constraints.max_items != 0 {
+                let items = constraints
+                    .items
+                    .iter()
+                    .map(display_value)
+                    .collect::<Vec<String>>();
+
+                if constraints.select_many {
                     let maybe_selections = MultiSelect::with_theme(&ColorfulTheme::default())
                         .with_prompt(field_name)
-                        .items(&constraints.items)
-                        .max_length(constraints.max_items)
+                        .items(&items)
                         .defaults(&[])
                         .interact_opt()?;
 
@@ -290,14 +296,14 @@ impl TypeConstraints {
                         .flat_map(|index| constraints.items.get(index).cloned())
                         .collect();
 
-                    return Ok(selections)
+                    return Ok(selections);
                 }
 
                 let selected_value = if can_skip {
                     Select::with_theme(&theme)
                         .with_prompt(field_name)
                         .default(0)
-                        .items(&constraints.items)
+                        .items(&items)
                         .interact_opt()?
                         .and_then(|index| constraints.items.get(index).cloned())
                         .unwrap_or(serde_json::Value::Null)
@@ -305,60 +311,127 @@ impl TypeConstraints {
                     let index = Select::with_theme(&theme)
                         .with_prompt(field_name)
                         .default(0)
-                        .items(&constraints.items)
+                        .items(&items)
                         .interact()?;
-                    constraints.items
+                    constraints
+                        .items
                         .get(index)
                         .cloned()
                         .unwrap_or(serde_json::Value::Null)
                 };
 
                 Ok(selected_value)
-            },
+            }
             TypeConstraints::ArrayString {
                 constraints,
                 inner_constraints,
-            } => array_prompter(&theme, can_skip, field_name, constraints, inner_constraints.clone()),
+            } => array_prompter(
+                &theme,
+                can_skip,
+                field_name,
+                constraints,
+                inner_constraints.clone(),
+            ),
             TypeConstraints::ArrayU64 {
                 constraints,
                 inner_constraints,
-            } => array_prompter(&theme, can_skip, field_name, constraints, *inner_constraints),
+            } => array_prompter(
+                &theme,
+                can_skip,
+                field_name,
+                constraints,
+                *inner_constraints,
+            ),
             TypeConstraints::ArrayU32 {
                 constraints,
                 inner_constraints,
-             } => array_prompter(&theme, can_skip, field_name, constraints, *inner_constraints),
+            } => array_prompter(
+                &theme,
+                can_skip,
+                field_name,
+                constraints,
+                *inner_constraints,
+            ),
             TypeConstraints::ArrayU16 {
                 constraints,
                 inner_constraints,
-             } => array_prompter(&theme, can_skip, field_name, constraints, *inner_constraints),
+            } => array_prompter(
+                &theme,
+                can_skip,
+                field_name,
+                constraints,
+                *inner_constraints,
+            ),
             TypeConstraints::ArrayU8 {
                 constraints,
                 inner_constraints,
-             } => array_prompter(&theme, can_skip, field_name, constraints, *inner_constraints),
+            } => array_prompter(
+                &theme,
+                can_skip,
+                field_name,
+                constraints,
+                *inner_constraints,
+            ),
             TypeConstraints::ArrayI64 {
                 constraints,
                 inner_constraints,
-             } => array_prompter(&theme, can_skip, field_name, constraints, *inner_constraints),
+            } => array_prompter(
+                &theme,
+                can_skip,
+                field_name,
+                constraints,
+                *inner_constraints,
+            ),
             TypeConstraints::ArrayI32 {
                 constraints,
                 inner_constraints,
-             } => array_prompter(&theme, can_skip, field_name, constraints, *inner_constraints),
+            } => array_prompter(
+                &theme,
+                can_skip,
+                field_name,
+                constraints,
+                *inner_constraints,
+            ),
             TypeConstraints::ArrayI16 {
                 constraints,
                 inner_constraints,
-             } => array_prompter(&theme, can_skip, field_name, constraints, *inner_constraints),
+            } => array_prompter(
+                &theme,
+                can_skip,
+                field_name,
+                constraints,
+                *inner_constraints,
+            ),
             TypeConstraints::ArrayI8 {
                 constraints,
                 inner_constraints,
-             } => array_prompter(&theme, can_skip, field_name, constraints, *inner_constraints),
+            } => array_prompter(
+                &theme,
+                can_skip,
+                field_name,
+                constraints,
+                *inner_constraints,
+            ),
             TypeConstraints::ArrayF64 {
                 constraints,
                 inner_constraints,
-            } => array_prompter(&theme, can_skip, field_name, constraints, *inner_constraints),
+            } => array_prompter(
+                &theme,
+                can_skip,
+                field_name,
+                constraints,
+                *inner_constraints,
+            ),
             TypeConstraints::ArrayF32 {
                 constraints,
                 inner_constraints,
-             } => array_prompter(&theme, can_skip, field_name, constraints, *inner_constraints),
+            } => array_prompter(
+                &theme,
+                can_skip,
+                field_name,
+                constraints,
+                *inner_constraints,
+            ),
             TypeConstraints::Object { fields } => {
                 let mut populated_fields = serde_json::Map::new();
                 for (key, field) in fields {
@@ -370,7 +443,6 @@ impl TypeConstraints {
         }
     }
 }
-
 
 fn array_prompter<'a, V, T>(
     theme: &dyn Theme,
@@ -384,10 +456,7 @@ where
     V: Validator<T> + Clone + 'a,
     V::Err: Display,
 {
-    let error_style = Style::new()
-        .red()
-        .italic()
-        .for_stdout();
+    let error_style = Style::new().red().italic().for_stdout();
     let mut values = Vec::new();
     for _ in 0..constraints.max_items {
         let maybe_value = T::prompt(theme, field_name, Some(validator.clone()), true)?;
@@ -400,11 +469,7 @@ where
                         "This field requires a minimum of {} values to be provided. \
                         {}",
                         constraints.min_items,
-                        if can_skip {
-                            SKIP_MESSAGE
-                        } else {
-                            ""
-                        }
+                        if can_skip { SKIP_MESSAGE } else { "" }
                     );
 
                     println!("{}", error_style.apply_to(msg));
@@ -414,13 +479,24 @@ where
                             .interact()?;
 
                         if skip {
-                            break
+                            break;
                         }
                     }
                 }
-            },
+            }
         }
     }
 
     Ok(serde_json::Value::from(values))
+}
+
+fn display_value(v: &serde_json::Value) -> String {
+    match v {
+        serde_json::Value::Null => "null".to_string(),
+        serde_json::Value::Bool(b) => b.to_string(),
+        serde_json::Value::Number(int) => int.to_string(),
+        serde_json::Value::String(s) => s.clone(),
+        serde_json::Value::Array(a) => format!("{a:?}"),
+        serde_json::Value::Object(o) => format!("{o:?}"),
+    }
 }
