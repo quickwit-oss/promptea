@@ -2,7 +2,7 @@ use std::fmt::{Debug, Display};
 use std::io;
 use std::str::FromStr;
 
-use dialoguer::theme::Theme;
+use dialoguer::theme::ColorfulTheme;
 use dialoguer::{Confirm, Input, Validator};
 
 /// A value which can prompt a user for a value.
@@ -17,7 +17,6 @@ where
     V::Err: Display,
 {
     fn prompt(
-        theme: &dyn Theme,
         field_name: impl Display,
         validator: Option<V>,
         can_skip: bool,
@@ -30,12 +29,11 @@ where
     V::Err: Display,
 {
     fn prompt(
-        theme: &dyn Theme,
         field_name: impl Display,
         mut validator: Option<V>,
         can_skip: bool,
     ) -> io::Result<Option<Self>> {
-        Input::with_theme(theme)
+        Input::with_theme(&ColorfulTheme::default())
             .with_prompt(field_name.to_string())
             .allow_empty(can_skip)
             .validate_with(|input: &String| -> Result<(), String> {
@@ -66,12 +64,11 @@ where
     V::Err: Display,
 {
     fn prompt(
-        theme: &dyn Theme,
         field_name: impl Display,
         _validator: Option<V>,
         _can_skip: bool,
     ) -> io::Result<Option<Self>> {
-        Confirm::with_theme(theme)
+        Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt(field_name.to_string())
             .default(false)
             .interact_opt()
@@ -123,12 +120,11 @@ macro_rules! parse_primitives {
             V::Err: Display,
         {
             fn prompt(
-                theme: &dyn Theme,
                 field_name: impl Display,
                 mut validator: Option<V>,
                 can_skip: bool,
             ) -> io::Result<Option<Self>> {
-                Input::with_theme(theme)
+                Input::with_theme(&ColorfulTheme::default())
                     .with_prompt(field_name.to_string())
                     .allow_empty(can_skip)
                     .validate_with(|input: &String| -> Result<(), String> {

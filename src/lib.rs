@@ -9,7 +9,7 @@ use console::Style;
 pub use constraints::{
     CollectionConstraints, IntConstraints, SelectConstraints, StringConstraints,
 };
-use dialoguer::theme::{ColorfulTheme, Theme};
+use dialoguer::theme::ColorfulTheme;
 use dialoguer::{Confirm, MultiSelect, Select, Validator};
 use indexmap::IndexMap;
 use inflector::Inflector;
@@ -239,53 +239,41 @@ impl TypeConstraints {
     ) -> io::Result<serde_json::Value> {
         let theme = ColorfulTheme::default();
         match self {
-            TypeConstraints::Bool => {
-                bool::prompt(&theme, field_name, Some(BlankValidator), can_skip)
-                    .map(serde_json::Value::from)
-            }
+            TypeConstraints::Bool => bool::prompt(field_name, Some(BlankValidator), can_skip)
+                .map(serde_json::Value::from),
             TypeConstraints::String(constraints) => {
-                String::prompt(&theme, field_name, Some(constraints.clone()), can_skip)
+                String::prompt(field_name, Some(constraints.clone()), can_skip)
                     .map(serde_json::Value::from)
             }
             TypeConstraints::U64(constraints) => {
-                u64::prompt(&theme, field_name, Some(*constraints), can_skip)
-                    .map(serde_json::Value::from)
+                u64::prompt(field_name, Some(*constraints), can_skip).map(serde_json::Value::from)
             }
             TypeConstraints::U32(constraints) => {
-                u32::prompt(&theme, field_name, Some(*constraints), can_skip)
-                    .map(serde_json::Value::from)
+                u32::prompt(field_name, Some(*constraints), can_skip).map(serde_json::Value::from)
             }
             TypeConstraints::U16(constraints) => {
-                u16::prompt(&theme, field_name, Some(*constraints), can_skip)
-                    .map(serde_json::Value::from)
+                u16::prompt(field_name, Some(*constraints), can_skip).map(serde_json::Value::from)
             }
             TypeConstraints::U8(constraints) => {
-                u8::prompt(&theme, field_name, Some(*constraints), can_skip)
-                    .map(serde_json::Value::from)
+                u8::prompt(field_name, Some(*constraints), can_skip).map(serde_json::Value::from)
             }
             TypeConstraints::I64(constraints) => {
-                i64::prompt(&theme, field_name, Some(*constraints), can_skip)
-                    .map(serde_json::Value::from)
+                i64::prompt(field_name, Some(*constraints), can_skip).map(serde_json::Value::from)
             }
             TypeConstraints::I32(constraints) => {
-                i32::prompt(&theme, field_name, Some(*constraints), can_skip)
-                    .map(serde_json::Value::from)
+                i32::prompt(field_name, Some(*constraints), can_skip).map(serde_json::Value::from)
             }
             TypeConstraints::I16(constraints) => {
-                i16::prompt(&theme, field_name, Some(*constraints), can_skip)
-                    .map(serde_json::Value::from)
+                i16::prompt(field_name, Some(*constraints), can_skip).map(serde_json::Value::from)
             }
             TypeConstraints::I8(constraints) => {
-                i8::prompt(&theme, field_name, Some(*constraints), can_skip)
-                    .map(serde_json::Value::from)
+                i8::prompt(field_name, Some(*constraints), can_skip).map(serde_json::Value::from)
             }
             TypeConstraints::F64(constraints) => {
-                f64::prompt(&theme, field_name, Some(*constraints), can_skip)
-                    .map(serde_json::Value::from)
+                f64::prompt(field_name, Some(*constraints), can_skip).map(serde_json::Value::from)
             }
             TypeConstraints::F32(constraints) => {
-                f32::prompt(&theme, field_name, Some(*constraints), can_skip)
-                    .map(serde_json::Value::from)
+                f32::prompt(field_name, Some(*constraints), can_skip).map(serde_json::Value::from)
             }
             TypeConstraints::Select {
                 constraints,
@@ -351,113 +339,47 @@ impl TypeConstraints {
             TypeConstraints::ArrayString {
                 constraints,
                 inner_constraints,
-            } => array_prompter(
-                &theme,
-                can_skip,
-                field_name,
-                constraints,
-                inner_constraints.clone(),
-            ),
+            } => array_prompter(can_skip, field_name, constraints, inner_constraints.clone()),
             TypeConstraints::ArrayU64 {
                 constraints,
                 inner_constraints,
-            } => array_prompter(
-                &theme,
-                can_skip,
-                field_name,
-                constraints,
-                *inner_constraints,
-            ),
+            } => array_prompter(can_skip, field_name, constraints, *inner_constraints),
             TypeConstraints::ArrayU32 {
                 constraints,
                 inner_constraints,
-            } => array_prompter(
-                &theme,
-                can_skip,
-                field_name,
-                constraints,
-                *inner_constraints,
-            ),
+            } => array_prompter(can_skip, field_name, constraints, *inner_constraints),
             TypeConstraints::ArrayU16 {
                 constraints,
                 inner_constraints,
-            } => array_prompter(
-                &theme,
-                can_skip,
-                field_name,
-                constraints,
-                *inner_constraints,
-            ),
+            } => array_prompter(can_skip, field_name, constraints, *inner_constraints),
             TypeConstraints::ArrayU8 {
                 constraints,
                 inner_constraints,
-            } => array_prompter(
-                &theme,
-                can_skip,
-                field_name,
-                constraints,
-                *inner_constraints,
-            ),
+            } => array_prompter(can_skip, field_name, constraints, *inner_constraints),
             TypeConstraints::ArrayI64 {
                 constraints,
                 inner_constraints,
-            } => array_prompter(
-                &theme,
-                can_skip,
-                field_name,
-                constraints,
-                *inner_constraints,
-            ),
+            } => array_prompter(can_skip, field_name, constraints, *inner_constraints),
             TypeConstraints::ArrayI32 {
                 constraints,
                 inner_constraints,
-            } => array_prompter(
-                &theme,
-                can_skip,
-                field_name,
-                constraints,
-                *inner_constraints,
-            ),
+            } => array_prompter(can_skip, field_name, constraints, *inner_constraints),
             TypeConstraints::ArrayI16 {
                 constraints,
                 inner_constraints,
-            } => array_prompter(
-                &theme,
-                can_skip,
-                field_name,
-                constraints,
-                *inner_constraints,
-            ),
+            } => array_prompter(can_skip, field_name, constraints, *inner_constraints),
             TypeConstraints::ArrayI8 {
                 constraints,
                 inner_constraints,
-            } => array_prompter(
-                &theme,
-                can_skip,
-                field_name,
-                constraints,
-                *inner_constraints,
-            ),
+            } => array_prompter(can_skip, field_name, constraints, *inner_constraints),
             TypeConstraints::ArrayF64 {
                 constraints,
                 inner_constraints,
-            } => array_prompter(
-                &theme,
-                can_skip,
-                field_name,
-                constraints,
-                *inner_constraints,
-            ),
+            } => array_prompter(can_skip, field_name, constraints, *inner_constraints),
             TypeConstraints::ArrayF32 {
                 constraints,
                 inner_constraints,
-            } => array_prompter(
-                &theme,
-                can_skip,
-                field_name,
-                constraints,
-                *inner_constraints,
-            ),
+            } => array_prompter(can_skip, field_name, constraints, *inner_constraints),
             TypeConstraints::Object { fields } => {
                 let mut nested_fields = serde_json::Map::new();
                 for (key, field) in fields {
@@ -471,7 +393,6 @@ impl TypeConstraints {
 }
 
 fn array_prompter<'a, V, T>(
-    theme: &dyn Theme,
     can_skip: bool,
     field_name: &str,
     constraints: &CollectionConstraints,
@@ -485,7 +406,7 @@ where
     let error_style = Style::new().red().italic().for_stdout();
     let mut values = Vec::new();
     for _ in 0..constraints.max_items {
-        let maybe_value = T::prompt(theme, field_name, Some(validator.clone()), true)?;
+        let maybe_value = T::prompt(field_name, Some(validator.clone()), true)?;
 
         match maybe_value {
             Some(value) => values.push(value.into()),
