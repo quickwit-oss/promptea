@@ -6,16 +6,16 @@ use std::fmt::{Debug, Display};
 use std::io;
 
 use console::Style;
-pub use constraints::{
-    CollectionConstraints, IntConstraints, SelectConstraints, StringConstraints,
-};
 use dialoguer::theme::ColorfulTheme;
 use dialoguer::{Confirm, MultiSelect, Select, Validator};
 use indexmap::IndexMap;
 use inflector::Inflector;
-pub use value::{PromptValue, TraitIntBounds};
 
-use crate::constraints::{BlankValidator, Conditions};
+pub use self::constraints::{
+    BlankValidator, CollectionConstraints, Conditions, IfCondition, IntConstraints,
+    SelectConstraints, StringConstraints,
+};
+pub use self::value::{PromptValue, TraitIntBounds};
 
 static SKIP_MESSAGE: &str = "Did you mean to skip this field entirely?";
 
