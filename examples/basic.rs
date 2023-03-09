@@ -1,4 +1,4 @@
-use promtea::Schema;
+use promptea::Schema;
 
 fn test_basic_schema_prompts() {
     let schema: Schema = serde_yaml::from_str(include_str!("./prompts/basic.yaml")).unwrap();

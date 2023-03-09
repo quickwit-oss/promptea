@@ -16,17 +16,86 @@ fields:
     display_name: "Source Type"
     description: |
       The source type designates the kind of source being configured.
-      As of version 0.3, available source types are `file`, `kafka`, and `kinesis`.
+      As of version 0.3, available source types are `file`, `kafka`, `pulsar` and `kinesis`.
     items:
       - file
       - kafka
       - kinesis
-
-    # Conditions are checked one item have been selected.
+      - pulsar
     then:
-      # There can be several if conditions matching different values.
+      insert_at_root: true
       if:
-        - picked: file
-          fields:
-            name:
-              type: string
+          - picked: pulsar
+            fields:
+              params:
+                type: object
+                display_name: "Pulsar Parameters"
+                description: |
+                  Please follow the steps for creating a Pulsar source.
+                fields:
+                  topics:
+                    type: string[]
+                    prompt: "Topic"
+                    description: |
+                      You can create a Pulsar source consuming from several
+                      topics at once, you need to provide at least 1 topic by default.
+                      Learn more: https://pulsar.apache.org/docs/2.11.x/concepts-messaging/#topics
+                    min_items: 1
+                  address:
+                    type: string
+                    description: |
+                      The address used for connecting to the Pulsar broker.
+                      This address must start with `pulsar://`.
+                    regex: "^pulsar:\/\/.+$"  # TODO: Better validator may be useful
+                  consumer_name:
+                    type: string
+                    prompt: "Consumer Name (leave blank to skip)"
+                    description: |
+                      You can customise the consumer name used when Quickwit connects to Pulsar,
+                      by default this is `quickwit`.
+                    can_skip: true
+                  authentication:
+                    type: select
+                    prompt: "Authentication (press `q` or ESC to skip)"
+                    can_skip: true
+                    description: |
+                      You can provide optional authentication, both token and Oauth2 
+                      authentication is supported.
+                      Read more about Pulsar authentication: https://pulsar.apache.org/docs/2.11.x/security-overview/
+                    items:
+                      - token
+                      - oauth2
+                    then:
+                      if:
+                        - picked: token
+                          fields:
+                            token:
+                              type: string
+                              display_name: "JWT Token"
+                              prompt: "Token"
+                              description: |
+                                The Pulsar JWT token.
+                                For more information see: https://pulsar.apache.org/docs/2.11.x/security-jwt/
+
+                        - picked: oauth2
+                          fields:
+                            oauth2:
+                              type: object
+                              fields:
+                                issuer_url:
+                                  type: string
+                                  display_name: "Issuer URL"
+                                credentials_url:
+                                  type: string
+                                  display_name: "Credentials URL"
+                                audience:
+                                  type: string
+                                  can_skip: true
+                                  display_name: "Audience"
+                                  prompt: "Audience (leave blank to skip)"
+                                scope:
+                                  type: string
+                                  can_skip: true
+                                  display_name: "Scope"
+                                  prompt: "Scope (leave blank to skip)"
+

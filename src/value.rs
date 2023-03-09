@@ -37,6 +37,7 @@ where
     ) -> io::Result<Option<Self>> {
         Input::with_theme(theme)
             .with_prompt(field_name.to_string())
+            .allow_empty(can_skip)
             .validate_with(|input: &String| -> Result<(), String> {
                 if can_skip && input.is_empty() {
                     return Ok(());
@@ -80,7 +81,7 @@ where
     V::Err: Debug,
 {
     if can_skip && input.is_empty() {
-        return None;
+        None
     } else {
         Some(input.parse::<V>().unwrap())
     }
@@ -111,6 +112,7 @@ macro_rules! parse_primitives {
             ) -> io::Result<Option<Self>> {
                 Input::with_theme(theme)
                     .with_prompt(field_name.to_string())
+                    .allow_empty(can_skip)
                     .validate_with(|input: &String| -> Result<(), String> {
                         if can_skip && input.is_empty() {
                             return Ok(());

@@ -7,7 +7,7 @@ use dialoguer::{Confirm, MultiSelect, Select, Validator};
 use indexmap::IndexMap;
 use inflector::Inflector;
 use std::collections::BTreeMap;
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 use std::io;
 
 use crate::constraints::Conditions;
@@ -308,8 +308,8 @@ impl TypeConstraints {
 
                     let mut values = Vec::new();
                     for selected in selections {
-                        check_conditions(conditions, &selected, quiet, populated_fields)?;
-                        values.push(selected);
+                        let returned_value = check_conditions(conditions, &selected, quiet, populated_fields)?;
+                        values.push(returned_value.unwrap_or(selected));
                     }
 
                     return Ok(serde_json::Value::Array(values));
@@ -336,8 +336,8 @@ impl TypeConstraints {
                         .unwrap_or(serde_json::Value::Null)
                 };
 
-                check_conditions(conditions, &selected_value, quiet, populated_fields)?;
-                Ok(selected_value)
+                let returned_value = check_conditions(conditions, &selected_value, quiet, populated_fields)?;
+                Ok(returned_value.unwrap_or(selected_value))
             }
             TypeConstraints::ArrayString {
                 constraints,
@@ -469,7 +469,7 @@ fn array_prompter<'a, V, T>(
     validator: V,
 ) -> io::Result<serde_json::Value>
 where
-    T: PromptValue<'a, V>,
+    T: PromptValue<'a, V> + Debug,
     V: Validator<T> + Clone + 'a,
     V::Err: Display,
 {
@@ -499,7 +499,11 @@ where
                             break;
                         }
                     }
+
+                    continue
                 }
+
+                break
             }
         }
     }
@@ -512,21 +516,32 @@ fn check_conditions(
     selected: &serde_json::Value,
     quiet: bool,
     populated_fields: &mut BTreeMap<String, serde_json::Value>,
-) -> io::Result<()> {
+) -> io::Result<Option<serde_json::Value>> {
+    let mut return_value = None;
     for condition in conditions.if_conditions.iter() {
         if &condition.picked != selected {
             continue;
         }
 
+        let mut object = serde_json::Map::new();
         for (key, field) in condition.fields.iter() {
             let value = field.prompt(key, quiet, false, populated_fields)?;
-            populated_fields.insert(key.clone(), value);
+
+            if conditions.insert_at_root {
+                populated_fields.insert(key.clone(), value);
+            } else {
+                object.insert(key.clone(), value);
+            }
+        }
+
+        if !conditions.insert_at_root {
+            return_value = Some(serde_json::Value::Object(object));
         }
 
         break;
     }
 
-    Ok(())
+    Ok(return_value)
 }
 
 fn display_value(v: &serde_json::Value) -> String {

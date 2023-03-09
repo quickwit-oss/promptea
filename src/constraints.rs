@@ -38,6 +38,12 @@ pub struct SelectConstraints {
 #[derive(serde::Deserialize, Default)]
 /// Prompts which are triggered on value selection.
 pub struct Conditions {
+    #[serde(default)]
+    /// Should the object be inserted at the root of the data or not.
+    ///
+    /// If this is false (default) it will be inserted in a nested fashion.
+    pub insert_at_root: bool,
+
     #[serde(rename = "if")]
     /// If conditions if a value is picked.
     ///
