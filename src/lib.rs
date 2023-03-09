@@ -308,7 +308,8 @@ impl TypeConstraints {
 
                     let mut values = Vec::new();
                     for selected in selections {
-                        let returned_value = check_conditions(conditions, &selected, quiet, populated_fields)?;
+                        let returned_value =
+                            check_conditions(conditions, &selected, quiet, populated_fields)?;
                         values.push(returned_value.unwrap_or(selected));
                     }
 
@@ -336,7 +337,8 @@ impl TypeConstraints {
                         .unwrap_or(serde_json::Value::Null)
                 };
 
-                let returned_value = check_conditions(conditions, &selected_value, quiet, populated_fields)?;
+                let returned_value =
+                    check_conditions(conditions, &selected_value, quiet, populated_fields)?;
                 Ok(returned_value.unwrap_or(selected_value))
             }
             TypeConstraints::ArrayString {
@@ -500,10 +502,10 @@ where
                         }
                     }
 
-                    continue
+                    continue;
                 }
 
-                break
+                break;
             }
         }
     }
