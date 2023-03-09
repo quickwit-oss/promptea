@@ -10,6 +10,7 @@ use std::collections::BTreeMap;
 use std::fmt::Display;
 use std::io;
 
+use crate::constraints::Conditions;
 pub use constraints::{
     CollectionConstraints, IntConstraints, SelectConstraints, StringConstraints,
 };
@@ -31,7 +32,7 @@ impl Schema {
     pub fn prompt(&self, quiet: bool) -> io::Result<BTreeMap<String, serde_json::Value>> {
         let mut populated_fields = BTreeMap::new();
         for (key, field) in self.fields.iter() {
-            let value = field.prompt(key, quiet, false)?;
+            let value = field.prompt(key, quiet, false, &mut populated_fields)?;
             populated_fields.insert(key.clone(), value);
         }
         Ok(populated_fields)
@@ -66,6 +67,7 @@ impl Field {
         field_key: &str,
         quiet: bool,
         hide_title: bool,
+        populated_fields: &mut BTreeMap<String, serde_json::Value>,
     ) -> io::Result<serde_json::Value> {
         if !quiet {
             if !hide_title && self.display_name.is_some() {
@@ -92,7 +94,7 @@ impl Field {
             .map(str::to_string)
             .unwrap_or_else(|| field_key.to_title_case());
         self.type_constraints
-            .prompt(&field_name, self.can_skip, quiet)
+            .prompt(&field_name, self.can_skip, quiet, populated_fields)
     }
 }
 
@@ -123,7 +125,12 @@ pub enum TypeConstraints {
     /// A f32 type.
     F32(IntConstraints<f32>),
     /// A select menu
-    Select(SelectConstraints),
+    Select {
+        #[serde(flatten)]
+        constraints: SelectConstraints,
+        #[serde(rename = "then", default)]
+        conditions: Conditions,
+    },
     /// A nested object.
     Object {
         /// The fields within the nested object.
@@ -225,6 +232,7 @@ impl TypeConstraints {
         field_name: &str,
         can_skip: bool,
         quiet: bool,
+        populated_fields: &mut BTreeMap<String, serde_json::Value>,
     ) -> io::Result<serde_json::Value> {
         let theme = ColorfulTheme::default();
         match self {
@@ -272,7 +280,10 @@ impl TypeConstraints {
                 f32::prompt(&theme, field_name, Some(*constraints), can_skip)
                     .map(serde_json::Value::from)
             }
-            TypeConstraints::Select(constraints) => {
+            TypeConstraints::Select {
+                constraints,
+                conditions,
+            } => {
                 let items = constraints
                     .items
                     .iter()
@@ -293,10 +304,15 @@ impl TypeConstraints {
 
                     let selections = selections
                         .into_iter()
-                        .flat_map(|index| constraints.items.get(index).cloned())
-                        .collect();
+                        .flat_map(|index| constraints.items.get(index).cloned());
 
-                    return Ok(selections);
+                    let mut values = Vec::new();
+                    for selected in selections {
+                        check_conditions(conditions, &selected, quiet, populated_fields)?;
+                        values.push(selected);
+                    }
+
+                    return Ok(serde_json::Value::Array(values));
                 }
 
                 let selected_value = if can_skip {
@@ -320,6 +336,7 @@ impl TypeConstraints {
                         .unwrap_or(serde_json::Value::Null)
                 };
 
+                check_conditions(conditions, &selected_value, quiet, populated_fields)?;
                 Ok(selected_value)
             }
             TypeConstraints::ArrayString {
@@ -433,12 +450,12 @@ impl TypeConstraints {
                 *inner_constraints,
             ),
             TypeConstraints::Object { fields } => {
-                let mut populated_fields = serde_json::Map::new();
+                let mut nested_fields = serde_json::Map::new();
                 for (key, field) in fields {
-                    let value = field.prompt(key, quiet, true)?;
-                    populated_fields.insert(key.clone(), value);
+                    let value = field.prompt(key, quiet, true, populated_fields)?;
+                    nested_fields.insert(key.clone(), value);
                 }
-                Ok(serde_json::Value::Object(populated_fields))
+                Ok(serde_json::Value::Object(nested_fields))
             }
         }
     }
@@ -488,6 +505,28 @@ where
     }
 
     Ok(serde_json::Value::from(values))
+}
+
+fn check_conditions(
+    conditions: &Conditions,
+    selected: &serde_json::Value,
+    quiet: bool,
+    populated_fields: &mut BTreeMap<String, serde_json::Value>,
+) -> io::Result<()> {
+    for condition in conditions.if_conditions.iter() {
+        if &condition.picked != selected {
+            continue;
+        }
+
+        for (key, field) in condition.fields.iter() {
+            let value = field.prompt(key, quiet, false, populated_fields)?;
+            populated_fields.insert(key.clone(), value);
+        }
+
+        break;
+    }
+
+    Ok(())
 }
 
 fn display_value(v: &serde_json::Value) -> String {

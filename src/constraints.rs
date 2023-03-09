@@ -1,7 +1,9 @@
 use dialoguer::Validator;
+use indexmap::IndexMap;
 use regex::Regex;
 
 use crate::value::TraitIntBounds;
+use crate::Field;
 
 #[derive(serde::Deserialize, Clone, Copy)]
 /// The constraints for collection types (array, set, hashmap, etc...)
@@ -31,6 +33,24 @@ pub struct SelectConstraints {
     pub select_many: bool,
     /// The items that can be selected.
     pub items: Vec<serde_json::Value>,
+}
+
+#[derive(serde::Deserialize, Default)]
+/// Prompts which are triggered on value selection.
+pub struct Conditions {
+    #[serde(rename = "if")]
+    /// If conditions if a value is picked.
+    ///
+    /// Not triggered when value skipped.
+    pub if_conditions: Vec<IfCondition>,
+}
+
+#[derive(serde::Deserialize)]
+pub struct IfCondition {
+    /// The trigger value.
+    pub picked: serde_json::Value,
+    /// The prompt fields to trigger.
+    pub fields: IndexMap<String, Field>,
 }
 
 #[derive(serde::Deserialize, Clone)]

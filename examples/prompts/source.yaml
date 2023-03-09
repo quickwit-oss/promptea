@@ -21,3 +21,12 @@ fields:
       - file
       - kafka
       - kinesis
+
+    # Conditions are checked one item have been selected.
+    then:
+      # There can be several if conditions matching different values.
+      if:
+        - picked: file
+          fields:
+            name:
+              type: string
