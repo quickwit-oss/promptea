@@ -151,3 +151,13 @@ impl<T: TraitIntBounds + Clone + Copy> Validator<T> for IntConstraints<T> {
         Ok(())
     }
 }
+
+/// A no-op validator.
+pub struct BlankValidator;
+impl<T> Validator<T> for BlankValidator {
+    type Err = String;
+
+    fn validate(&mut self, _input: &T) -> Result<(), Self::Err> {
+        Ok(())
+    }
+}

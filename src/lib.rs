@@ -1,20 +1,21 @@
 mod constraints;
 mod value;
 
-use console::Style;
-use dialoguer::theme::{ColorfulTheme, Theme};
-use dialoguer::{Confirm, MultiSelect, Select, Validator};
-use indexmap::IndexMap;
-use inflector::Inflector;
 use std::collections::BTreeMap;
 use std::fmt::{Debug, Display};
 use std::io;
 
-use crate::constraints::Conditions;
+use console::Style;
 pub use constraints::{
     CollectionConstraints, IntConstraints, SelectConstraints, StringConstraints,
 };
+use dialoguer::theme::{ColorfulTheme, Theme};
+use dialoguer::{Confirm, MultiSelect, Select, Validator};
+use indexmap::IndexMap;
+use inflector::Inflector;
 pub use value::{PromptValue, TraitIntBounds};
+
+use crate::constraints::{BlankValidator, Conditions};
 
 static SKIP_MESSAGE: &str = "Did you mean to skip this field entirely?";
 
@@ -102,6 +103,8 @@ impl Field {
 #[serde(rename_all = "lowercase")]
 #[serde(tag = "type")]
 pub enum TypeConstraints {
+    /// A boolean type.
+    Bool,
     /// A string type.
     String(StringConstraints),
     /// A u64 type.
@@ -236,6 +239,10 @@ impl TypeConstraints {
     ) -> io::Result<serde_json::Value> {
         let theme = ColorfulTheme::default();
         match self {
+            TypeConstraints::Bool => {
+                bool::prompt(&theme, field_name, Some(BlankValidator), can_skip)
+                    .map(serde_json::Value::from)
+            }
             TypeConstraints::String(constraints) => {
                 String::prompt(&theme, field_name, Some(constraints.clone()), can_skip)
                     .map(serde_json::Value::from)
@@ -485,8 +492,7 @@ where
             None => {
                 if values.len() < constraints.min_items {
                     let msg = format!(
-                        "This field requires a minimum of {} values to be provided. \
-                        {}",
+                        "This field requires a minimum of {} values to be provided. {}",
                         constraints.min_items,
                         if can_skip { SKIP_MESSAGE } else { "" }
                     );

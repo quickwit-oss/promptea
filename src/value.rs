@@ -3,7 +3,7 @@ use std::io;
 use std::str::FromStr;
 
 use dialoguer::theme::Theme;
-use dialoguer::{Input, Validator};
+use dialoguer::{Confirm, Input, Validator};
 
 /// A value which can prompt a user for a value.
 ///
@@ -57,6 +57,24 @@ where
                     Some(input)
                 }
             })
+    }
+}
+
+impl<'a, V> PromptValue<'a, V> for bool
+where
+    V: Validator<Self> + 'a,
+    V::Err: Display,
+{
+    fn prompt(
+        theme: &dyn Theme,
+        field_name: impl Display,
+        _validator: Option<V>,
+        _can_skip: bool,
+    ) -> io::Result<Option<Self>> {
+        Confirm::with_theme(theme)
+            .with_prompt(field_name.to_string())
+            .default(false)
+            .interact_opt()
     }
 }
 
